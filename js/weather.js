@@ -1,9 +1,13 @@
 let input = document.querySelector("input");
 let button = document.querySelector("#searchBtn");
 let place = document.querySelector("#location");
+
+// 시간, 아이콘, 설명, 기온 요소
+let timeEls = document.querySelectorAll("li .time");
+let iconEls = document.querySelectorAll("li .iconWrap img");
+let descEls = document.querySelectorAll("li .iconWrap .desc");
 let tempEls = document.querySelectorAll("li .temp");
-let iconEls = document.querySelectorAll("li img");
-let timeEls = document.querySelectorAll("li p");
+
 let liEls = document.querySelectorAll("ul li");
 
 let APIkey = "e62600eea10cc3f1c1755f3360075d0c";
@@ -17,6 +21,15 @@ async function fetchWeatherByCoords(lat, lon) {
   let data = await response.json();
   render(data);
 }
+// -----------------------------------
+// input focus효과
+// -----------------------------------
+input.addEventListener("focusin", () => {
+  input.classList.add("focused");
+});
+input.addEventListener("focusout", () => {
+  input.classList.remove("focused");
+});
 
 //---------------------------------------------
 // 아이콘 d/n 보정 함수 (dt_txt 기준, 아주 단순 버전)
@@ -63,7 +76,7 @@ function updateBackgroundByLocalTime() {
 }
 
 //---------------------------------------------
-//  날씨 아이콘 변경용 맵
+//  날씨 아이콘,날씨설명 변경용 맵
 //---------------------------------------------
 updateBackgroundByLocalTime();
 const iconMap = {
@@ -85,6 +98,31 @@ const iconMap = {
   "13n": "img/13n.png",
   "50d": "img/50d.png",
   "50n": "img/50n.png",
+};
+const descMap = {
+  // 맑음
+  맑음: "맑음",
+
+  // 구름 단계
+  "구름 조금": "구름 조금", // few clouds
+  "약간의 구름이 낀 하늘": "구름 보통", // scattered clouds
+  튼구름: "구름 많음", // broken clouds
+  온흐림: "흐림", // overcast clouds
+
+  // 비
+  "실 비": "이슬비", // light intensity drizzle (번역이 종종 이렇게 나옴)
+  "약한 비": "약한 비", // light rain
+  "보통 비": "비", // moderate rain
+  "강한 비": "강한 비", // heavy intensity rain
+  소나기: "소나기", // shower rain
+
+  // 눈
+  "가벼운 눈": "약한 눈", // light snow
+  "보통 눈": "눈", // snow
+  "강한 눈": "강한 눈", // heavy snow
+
+  // 기타
+  안개: "안개",
 };
 
 getLocation();
@@ -141,6 +179,25 @@ input.addEventListener("keydown", (e) => {
 // 렌더 함수
 //---------------------------------------------
 function render(data) {
+  gsap.killTweensOf(liEls); // 이전 트윈 정리(선택 사항)
+
+  liEls.forEach((li, i) => {
+    gsap.fromTo(
+      li,
+      {
+        marginTop: 50, // ← transform 대신 margin으로
+        opacity: 0,
+      },
+      {
+        marginTop: 0,
+        opacity: 1,
+        duration: 0.4,
+        delay: i * 0.1,
+        ease: "power2.out",
+      }
+    );
+  });
+
   place.innerHTML = `<i class="fa-solid fa-location-dot"></i>현재위치 : ${data.city.name}`;
 
   let temps = [];
@@ -153,7 +210,7 @@ function render(data) {
 
   for (let i = 0; i < tempEls.length; i++) {
     let temp = Math.round(data.list[i].main.temp);
-    tempEls[i].textContent = `${temp}℃`;
+    tempEls[i].textContent = `현재 기온 : ${temp}℃`;
 
     // 원본 아이콘 코드
     let rawIconCode = data.list[i].weather[0].icon;
@@ -168,6 +225,14 @@ function render(data) {
 
     let label = data.list[i].dt_txt.slice(11, 16); // "12:00"
     timeEls[i].textContent = label;
+
+    // ★ 여기 추가: 날씨 설명 넣기
+    let rawDesc = data.list[i].weather[0].description;
+
+    // 매핑된 짧은 설명 가져오기
+    let shortDesc = descMap[rawDesc] || rawDesc; // 매핑 없으면 원본 사용
+
+    descEls[i].textContent = shortDesc;
 
     temps.push(temp);
     labels.push(label);
