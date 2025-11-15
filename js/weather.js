@@ -4,14 +4,43 @@ let place = document.querySelector("#location");
 let tempEls = document.querySelectorAll("li .temp");
 let iconEls = document.querySelectorAll("li img");
 let timeEls = document.querySelectorAll("li p");
+let liEls = document.querySelectorAll("ul li");
 
 let APIkey = "e62600eea10cc3f1c1755f3360075d0c";
 let chart = null;
 
-//---------------------------------------------
-// 시간에 따라 bg 변경
-//---------------------------------------------
+// 좌표(lat, lon)로 forecast 가져오기
+async function fetchWeatherByCoords(lat, lon) {
+  let response = await fetch(
+    `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${APIkey}&units=metric&lang=kr`
+  );
+  let data = await response.json();
+  render(data);
+}
 
+//---------------------------------------------
+// 아이콘 d/n 보정 함수 (dt_txt 기준, 아주 단순 버전)
+//---------------------------------------------
+function getCorrectIcon(iconCode, dtText) {
+  // iconCode 예: "02d" 또는 "02n"
+  // dtText 예: "2025-11-15 15:00:00"
+
+  // 1) 기본 코드 (앞의 2자리만 사용: "02")
+  const base = iconCode.slice(0, 2);
+
+  // 2) 시간 파싱
+  const hour = parseInt(dtText.slice(11, 13), 10); // "15" → 15
+
+  // 3) 낮/밤 기준
+  const isDay = hour >= 6 && hour < 18;
+
+  // 4) 강제로 "02d" 또는 "02n" 같은 식으로 재조합
+  return `${base}${isDay ? "d" : "n"}`;
+}
+
+//---------------------------------------------
+// 시간에 따라 bg 변경 (사용자 로컬 기준)
+//---------------------------------------------
 function updateBackgroundByLocalTime() {
   const hour = new Date().getHours();
   const body = document.body;
@@ -34,7 +63,7 @@ function updateBackgroundByLocalTime() {
 }
 
 //---------------------------------------------
-//  날씨 아이콘 변경
+//  날씨 아이콘 변경용 맵
 //---------------------------------------------
 updateBackgroundByLocalTime();
 const iconMap = {
@@ -66,64 +95,107 @@ function getLocation() {
 async function success(position) {
   let lat = position.coords.latitude;
   let lon = position.coords.longitude;
-
-  let response = await fetch(
-    `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${APIkey}&units=metric&lang=kr`
-  );
-
-  let data = await response.json();
-  render(data);
+  fetchWeatherByCoords(lat, lon);
 }
 
-weather = async (cityname) => {
-  let response = await fetch(
-    `https://api.openweathermap.org/data/2.5/forecast?q=${cityname}&appid=${APIkey}&units=metric&lang=kr`
-  );
-  let data = await response.json();
-  render(data);
-};
+// 도시 이름(한글/영문)으로 좌표 찾기 + 날씨 가져오기
+async function fetchWeatherByCityName(cityname) {
+  if (!cityname.trim()) return;
 
+  const encodedCity = encodeURIComponent(cityname.trim());
+
+  // Geocoding API: 도시 후보 리스트 가져오기
+  const geoRes = await fetch(
+    `https://api.openweathermap.org/geo/1.0/direct?q=${encodedCity}&limit=5&appid=${APIkey}`
+  );
+  const geoData = await geoRes.json();
+
+  if (!geoData || geoData.length === 0) {
+    alert("일치하는 도시를 찾을 수 없어요. 다른 이름으로 검색해볼까요?");
+    return;
+  }
+
+  // 일단 1순위(가장 첫 번째 결과) 기준으로 날씨 가져오기
+  const { lat, lon } = geoData[0];
+  fetchWeatherByCoords(lat, lon);
+}
+
+// ---------------------------------------------
+// 검색 이벤트 (버튼/엔터) + 검색 후 input 비우기
+// ---------------------------------------------
 button.addEventListener("click", () => {
-  let city = input.value;
-  input.value = "";
-  weather(city);
+  const city = input.value;
+  fetchWeatherByCityName(city);
+  input.value = ""; // 검색 후 비우기
 });
+
 input.addEventListener("keydown", (e) => {
-  if (e.key == "Enter") {
-    let city = input.value;
-    input.value = "";
-    weather(city);
+  if (e.key === "Enter") {
+    const city = input.value;
+    fetchWeatherByCityName(city);
+    input.value = ""; // 검색 후 비우기
   }
 });
 
+//---------------------------------------------
+// 렌더 함수
+//---------------------------------------------
 function render(data) {
   place.innerHTML = `<i class="fa-solid fa-location-dot"></i>현재위치 : ${data.city.name}`;
 
   let temps = [];
   let labels = [];
+
+  // ★ 현재 시간 & 가장 가까운 인덱스 찾기용 변수 (사용자 기준)
+  const now = new Date();
+  let nearestIndex = 0;
+  let nearestDiff = Infinity;
+
   for (let i = 0; i < tempEls.length; i++) {
     let temp = Math.round(data.list[i].main.temp);
     tempEls[i].textContent = `${temp}℃`;
 
-    let iconCode = data.list[i].weather[0].icon;
-    let iconUrl = iconMap[iconCode];
+    // 원본 아이콘 코드
+    let rawIconCode = data.list[i].weather[0].icon;
+    let dtText = data.list[i].dt_txt; // "2025-11-15 15:00:00"
+
+    // ★ dt_txt 기준으로 d/n 교정
+    let fixedIconCode = getCorrectIcon(rawIconCode, dtText);
+
+    // 맵에서 실제 이미지 경로 가져오기 (혹시 맵에 없으면 rawIconCode로 fallback)
+    let iconUrl = iconMap[fixedIconCode] || iconMap[rawIconCode];
     iconEls[i].src = iconUrl;
 
-    let label = data.list[i].dt_txt.slice(11, 16);
+    let label = data.list[i].dt_txt.slice(11, 16); // "12:00"
     timeEls[i].textContent = label;
 
     temps.push(temp);
     labels.push(label);
-    console.log(data);
+
+    // ★ 이 예보 시간과 "지금" 시간 차이 계산 (사용자 기준)
+    const forecastTime = new Date(data.list[i].dt_txt); // "2025-01-01 12:00:00"
+    const diff = Math.abs(forecastTime.getTime() - now.getTime());
+
+    if (diff < nearestDiff) {
+      nearestDiff = diff;
+      nearestIndex = i;
+    }
   }
 
-  //---------------------------------------------
-  // 차트 임시 막음
-  //---------------------------------------------
-  i = 0;
-  if (i == 1) {
-    drawChart(labels, temps);
+  // ★ for문 다 돈 후, li 강조 상태 반영
+  liEls.forEach((li) => li.classList.remove("current"));
+  if (liEls[nearestIndex]) {
+    liEls[nearestIndex].classList.add("current");
   }
+
+  console.log("nearestIndex:", nearestIndex, data);
+
+  //---------------------------------------------
+  // 차트
+  //---------------------------------------------
+  /*
+  drawChart(labels, temps);
+  */
 
   function drawChart(labels, temps) {
     let ctx = document.querySelector("#weatherChart").getContext("2d");
@@ -168,19 +240,26 @@ function render(data) {
 }
 
 // ---------------------------------------------
-// #searchArea 젤리 / 물결 효과 (GSAP)
+// li 카드 젤리 / 물결 효과 (GSAP)
 // ---------------------------------------------
-const searchArea = document.querySelector("#searchArea");
+const cards = document.querySelectorAll("ul li");
 
-if (searchArea) {
+// 카드마다 기본 스케일 계산 함수
+function getBaseScale(el) {
+  return el.classList.contains("current") ? 1.2 : 1;
+}
+
+cards.forEach((card) => {
   // 마우스가 올라왔을 때 한 번 "통통" 튕기는 젤리 효과
-  searchArea.addEventListener("mouseenter", () => {
+  card.addEventListener("mouseenter", () => {
+    const base = getBaseScale(card);
+
     gsap.fromTo(
-      searchArea,
-      { scaleX: 1, scaleY: 1 },
+      card,
+      { scaleX: base, scaleY: base },
       {
-        scaleX: 1.06,
-        scaleY: 0.94,
+        scaleX: base * 1.06,
+        scaleY: base * 0.94,
         duration: 0.18,
         yoyo: true,
         repeat: 1,
@@ -189,48 +268,49 @@ if (searchArea) {
     );
   });
 
-  // 마우스가 영역 안에서 움직일 때, 부드러운 물결/틸트 느낌
-  searchArea.addEventListener("mousemove", (e) => {
-    const rect = searchArea.getBoundingClientRect();
+  // 카드 위에서 마우스를 움직일 때 살짝 기울어지는 느낌
+  card.addEventListener("mousemove", (e) => {
+    const rect = card.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    // -1 ~ 1 사이 값으로 정규화
-    const relX = (e.clientX - centerX) / (rect.width / 2);
-    const relY = (e.clientY - centerY) / (rect.height / 2);
+    const relX = (e.clientX - centerX) / (rect.width / 2); // -1 ~ 1
+    const relY = (e.clientY - centerY) / (rect.height / 2); // -1 ~ 1
 
-    // 너무 과하게 안 가게 clamp
     const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
     const x = clamp(relX, -1, 1);
     const y = clamp(relY, -1, 1);
+    const base = getBaseScale(card);
 
-    gsap.to(searchArea, {
-      // 마우스 위치에 따라 살짝 기울고, 찌그러지듯 변형
-      rotation: x * 4, // 좌우 이동에 따라 약간 회전
-      skewX: x * 6, // 좌우 찌그러짐
-      skewY: y * -4, // 위/아래에 따른 찌그러짐
-      scaleX: 1 + x * 0.03, // 좌우로 약간 늘어남
-      scaleY: 1 - y * 0.03, // 위/아래에 따라 눌리는 느낌
+    gsap.to(card, {
+      rotation: x * 4,
+      skewX: x * 6,
+      skewY: y * -4,
+      scaleX: base + x * 0.03,
+      scaleY: base - y * 0.03,
       transformOrigin: "center",
       duration: 0.25,
       ease: "power2.out",
     });
   });
 
-  // 영역 밖으로 나가면 천천히 원래대로 되돌아오기
-  searchArea.addEventListener("mouseleave", () => {
-    gsap.to(searchArea, {
+  // 카드 밖으로 나가면 원래대로 복귀
+  card.addEventListener("mouseleave", () => {
+    const base = getBaseScale(card);
+
+    gsap.to(card, {
       rotation: 0,
       skewX: 0,
       skewY: 0,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: base,
+      scaleY: base,
       duration: 0.6,
-      ease: "elastic.out(1, 0.4)", // 통통~ 하고 돌아오는 젤리
+      ease: "elastic.out(1, 0.4)",
     });
   });
-}
-// // ---------------------------------------------
+});
+
+// ---------------------------------------------
 // div.bg 아이콘 눈동자: 커서를 따라가는 눈알 효과
 // ---------------------------------------------
 const eyeEls = document.querySelectorAll(".bg .eye");
@@ -277,3 +357,59 @@ document.addEventListener("mousemove", (e) => {
     });
   });
 });
+
+// ---------------------------------------------
+// UL 가로 드래그 스크롤
+// ---------------------------------------------
+const weatherList = document.querySelector("ul");
+
+let isDown = false;
+let startX;
+let scrollLeft;
+
+if (weatherList) {
+  weatherList.addEventListener("mousedown", (e) => {
+    isDown = true;
+    weatherList.classList.add("dragging");
+    startX = e.pageX - weatherList.offsetLeft;
+    scrollLeft = weatherList.scrollLeft;
+  });
+
+  weatherList.addEventListener("mouseleave", () => {
+    isDown = false;
+    weatherList.classList.remove("dragging");
+  });
+
+  weatherList.addEventListener("mouseup", () => {
+    isDown = false;
+    weatherList.classList.remove("dragging");
+  });
+
+  weatherList.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - weatherList.offsetLeft;
+    const walk = (x - startX) * 1.5; // 숫자 키우면 더 빠르게 이동
+    weatherList.scrollLeft = scrollLeft - walk;
+  });
+
+  // 터치(모바일) 지원
+  weatherList.addEventListener("touchstart", (e) => {
+    isDown = true;
+    weatherList.classList.add("dragging");
+    startX = e.touches[0].pageX - weatherList.offsetLeft;
+    scrollLeft = weatherList.scrollLeft;
+  });
+
+  weatherList.addEventListener("touchend", () => {
+    isDown = false;
+    weatherList.classList.remove("dragging");
+  });
+
+  weatherList.addEventListener("touchmove", (e) => {
+    if (!isDown) return;
+    const x = e.touches[0].pageX - weatherList.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    weatherList.scrollLeft = scrollLeft - walk;
+  });
+}

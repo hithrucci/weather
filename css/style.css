@@ -41,6 +41,7 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  z-index: -1;
 }
 .face-day {
   background-image: url("../img/dayIcon.png");
@@ -174,6 +175,52 @@ h1::after {
   position: relative;
   transform-origin: center;
 }
+/* 자동완성 박스 */
+#suggestBox {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 80px; /* input 아래로 약간 띄우기 */
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
+  padding: 8px 0;
+  box-sizing: border-box;
+  z-index: 50;
+  display: none; /* 기본은 숨김 */
+}
+
+#suggestBox.active {
+  display: block;
+}
+
+.suggest-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 24px;
+  font-size: 16px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: "PartialSans", system-ui;
+}
+
+.suggest-item span.city {
+  font-weight: 600;
+}
+
+.suggest-item span.country {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-left: 6px;
+}
+
+.suggest-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
 #searchBtn {
   position: absolute;
   right: 20px;
@@ -235,20 +282,81 @@ input {
 
 ul {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 20px;
   width: 80%;
   margin: 0px auto;
+  overflow: hidden;
+  height: 380px;
+  align-items: center;
 }
-
+ul.dragging {
+  cursor: grab;
+}
+ul.dragging * {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
 li {
   padding: 10px;
   box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
-  width: calc(100% / 7 - 17.14px);
-  height: 300px;
+  width: calc(100% / 6 - 16.66px);
+  height: 65%;
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  flex-shrink: 0;
 }
-img {
-  width: 60px;
+li:hover {
+  box-shadow: 0px 3px 18px rgba(0, 0, 0, 0.5);
+}
+li.current {
+  transform: scale(1.2);
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  position: relative;
+}
+li.current::after {
+  background-color: rgba(255, 255, 255, 0.4);
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 4px; /* border 두께 */
+  border-radius: inherit;
+
+  background: linear-gradient(
+    120deg,
+    #ff4d4d,
+    #ffcd4d,
+    #4dff88,
+    #4ddfff,
+    #4d6aff,
+    #d44dff,
+    #ff4dd2
+  );
+  filter: blur(12px);
+  background-size: 400% 400%; /* 흐르게 할 준비 */
+  animation: borderFlow 8s linear infinite;
+
+  /* mask 계산 — 내부를 비워서 border처럼 보이게 */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+@keyframes borderFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+ul img {
+  width: 80px;
 }
 
 #weatherChart {
@@ -257,7 +365,4 @@ img {
   height: auto;
   margin: 0px auto;
   background-color: #eee;
-}
-#weatherChart.searched {
-  display: block;
 }
