@@ -524,8 +524,8 @@ li .temp::before {
   margin: 40px auto;
   justify-content: center;
   align-items: center;
-
   height: 400px;
+  margin-bottom: 0px;
 }
 #view-detail #detailArea #detail {
   width: calc(100% / 2 - 15px);

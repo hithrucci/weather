@@ -219,6 +219,21 @@ function search(city) {
 --------------------------------------------- */
 
 function renderMain(data) {
+  mainList.forEach((list, i) => {
+    gsap.fromTo(
+      list,
+      {
+        opacity: 0,
+        marginTop: 0,
+      },
+      {
+        opacity: 1,
+        marginTop: -20,
+        delay: i * 0.15,
+      }
+    );
+  });
+
   mainPlace.innerHTML = `<i class="fa-solid fa-location-dot"></i>${data.city.name}`;
 
   const now = new Date();
@@ -254,6 +269,20 @@ function renderMain(data) {
 --------------------------------------------- */
 
 function renderDetail(data) {
+  detailList.forEach((list, i) => {
+    gsap.fromTo(
+      list,
+      {
+        opacity: 0,
+        marginTop: 0,
+      },
+      {
+        opacity: 1,
+        marginTop: -20,
+        delay: i * 0.1,
+      }
+    );
+  });
   const cityName = data.city.name;
   const item = data.list[0]; // 가장 가까운 시간대 기준
 
