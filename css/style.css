@@ -9,7 +9,13 @@
   font-weight: normal;
   font-display: swap;
 }
-
+@font-face {
+  font-family: "YeogiOttaeJalnan";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff")
+    format("woff");
+  font-weight: normal;
+  font-display: swap;
+}
 * {
   margin: 0;
   padding: 0;
@@ -21,14 +27,16 @@ ul {
 
 body {
   width: 100vw;
-  height: 100vh;
+  overflow: hidden;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   text-align: center;
-  overflow: hidden;
 }
-
+#view-main,
+#view-detail {
+  height: 100vh;
+}
 /* --------------------------------------------- */
 /* 배경 & 얼굴 아이콘 */
 /* --------------------------------------------- */
@@ -52,7 +60,7 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
-  z-index: -1;
+  z-index: 0;
 }
 
 .face-day {
@@ -98,11 +106,11 @@ body {
   transform-origin: center center;
 }
 
-body.day {
+body.day section {
   background-image: url("../img/bg_day.png");
 }
 
-body.night {
+body.night section {
   background-image: url("../img/bg_night.png");
 }
 
@@ -111,12 +119,12 @@ body.night {
 /* --------------------------------------------- */
 
 #back {
-  position: absolute;
+  position: fixed;
   left: 30px;
   top: 30px;
   transition: 0.3s;
   cursor: pointer;
-  z-index: 999;
+  z-index: 10000;
 }
 
 #back:hover {
@@ -133,6 +141,7 @@ body.night {
   align-items: center;
   position: relative;
   padding: 180px 0px 60px;
+  width: 100%;
 }
 
 h1 {
@@ -325,6 +334,8 @@ ul {
   overflow: hidden;
   height: 380px;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 ul.dragging {
@@ -410,9 +421,14 @@ li .iconWrap {
 }
 
 li .desc {
-  font-weight: bold;
+  /* font-weight: bold; */
   font-size: 13px;
   text-align: left;
+  background-color: #4da9ff;
+  padding: 4px 6px;
+  border-radius: 20px;
+  box-shadow: inset 1px 1px 3px #ddd, 1px 1px 5px rgba(0, 0, 0, 0.5);
+  color: #fff;
 }
 
 ul img {
@@ -434,7 +450,32 @@ li .temp::before {
   height: 2px;
   background-color: grey;
 }
-
+#currentDetailBtn {
+  background-color: rgba(0, 0, 0, 0.7);
+  width: 200px;
+  height: 50px;
+  border-radius: 100px;
+  line-height: 50px;
+  padding: 8px 0px;
+  color: #fff;
+  margin: 30px auto;
+  cursor: pointer;
+  position: relative;
+}
+#currentDetailBtn:hover {
+  background-color: rgba(0, 0, 0, 1);
+}
+#currentDetailBtn::after {
+  content: "";
+  position: absolute;
+  width: 97%;
+  height: 88%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 100px;
+  border: 2px solid #fff;
+}
 /* --------------------------------------------- */
 /* 차트 (준비용) */
 /* --------------------------------------------- */
@@ -445,4 +486,114 @@ li .temp::before {
   height: auto;
   margin: 0px auto;
   background-color: #eee;
+}
+
+/* ----------------------------------- */
+/* 디테일뷰 */
+/* ----------------------------------- */
+#view-detail {
+  z-index: 20;
+  position: relative;
+}
+#view-detail .bg {
+  position: absolute;
+  bottom: 0px;
+  right: 30px;
+  width: 25%;
+  display: none;
+}
+#view-detail .bg.on {
+  display: block;
+}
+#view-detail #searchArea {
+  padding-top: 40px;
+  position: relative;
+  width: 80%;
+  box-sizing: border-box;
+}
+#view-detail #searchArea #searchBtn {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(50%);
+}
+#view-detail #detailArea {
+  display: flex;
+  gap: 30px;
+  width: 80%;
+  margin: 40px auto;
+  justify-content: center;
+  align-items: center;
+
+  height: 400px;
+}
+#view-detail #detailArea #detail {
+  width: calc(100% / 2 - 15px);
+  height: 100%;
+  padding: 10px;
+  box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  display: flex;
+  box-sizing: border-box;
+  padding: 16px 30px;
+  position: relative;
+}
+#view-detail #detailArea canvas {
+  height: 100%;
+}
+#view-detail .city {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: "YeogiOttaeJalnan";
+  position: absolute;
+}
+#view-detail #detail .iconWrap {
+  margin-top: 50px;
+  height: 200px;
+  width: 100%;
+}
+#view-detail .iconWrap .icon {
+  width: 30%;
+}
+#view-detail .iconWrap .tempArea {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  font-weight: bold;
+  gap: 8px;
+}
+#view-detail .iconWrap .tempArea .currentTemp {
+  font-size: 2.5rem;
+  font-family: "YeogiOttaeJalnan";
+}
+#view-detail .temps {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#view-detail .temps > div {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  width: calc(100% / 2 - 5px);
+}
+#view-detail .temps > div p {
+  font-family: "YeogiOttaeJalnan";
+  display: inline-block;
+  font-size: 1.3rem;
+}
+#view-detail .temps > div span {
+  font-size: 1rem;
+  color: #555;
+  font-weight: normal;
 }

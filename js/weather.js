@@ -1,35 +1,61 @@
-//---------------------------------------------
-// DOM 요소 & 전역 변수
-//---------------------------------------------
+/* ---------------------------------------------
+   DOM 요소 분리 (메인 / 디테일)
+--------------------------------------------- */
 
-let input = document.querySelector("input");
-let button = document.querySelector("#searchBtn");
-let place = document.querySelector("#location");
+// 메인 영역
+const main = document.querySelector("#view-main");
+const mainInput = main.querySelector("input");
+const mainBtn = main.querySelector("#searchBtn");
+const mainPlace = main.querySelector("#location");
+const mainList = main.querySelectorAll("ul li");
+const mainTimes = main.querySelectorAll("ul li .time");
+const mainIcons = main.querySelectorAll("ul li .iconWrap img");
+const mainDescs = main.querySelectorAll("ul li .desc");
+const mainTemps = main.querySelectorAll("ul li .temp");
 
-let timeEls = document.querySelectorAll("li .time");
-let iconEls = document.querySelectorAll("li .iconWrap img");
-let descEls = document.querySelectorAll("li .iconWrap .desc");
-let tempEls = document.querySelectorAll("li .temp");
-let liEls = document.querySelectorAll("ul li");
+// 디테일 영역
+const detail = document.querySelector("#view-detail");
+const detailInput = detail.querySelector("input");
+const detailBtn = detail.querySelector("#searchBtn");
+const detailPlace = detail.querySelector("#location");
 
-let APIkey = "e62600eea10cc3f1c1755f3360075d0c";
+const detailCity = detail.querySelector(".city");
+const detailIcon = detail.querySelector(".icon");
+const detailDesc = detail.querySelector(".desc");
+const detailCurrentTemp = detail.querySelector(".currentTemp");
+const detailMin = detail.querySelector(".min");
+const detailMax = detail.querySelector(".max");
+const detailWind = detail.querySelector(".wind");
+const detailHumidity = detail.querySelector(".humidity");
+
+const detailList = detail.querySelectorAll("ul li");
+const detailTimes = detail.querySelectorAll("ul li .time");
+const detailIcons = detail.querySelectorAll("ul li .iconWrap img");
+const detailDescs = detail.querySelectorAll("ul li .desc");
+const detailTemps = detail.querySelectorAll("ul li .temp");
+
+// back 버튼 (처음엔 main 안에 있음)
+const backBtn = document.querySelector("#back");
+
+// 차트
+const chartCanvas = detail.querySelector("#weatherChart");
 let chart = null;
 
-//---------------------------------------------
-// input focus 효과
-//---------------------------------------------
+// API 키
+const APIkey = "e62600eea10cc3f1c1755f3360075d0c";
 
-input.addEventListener("focusin", () => {
-  input.classList.add("focused");
+/* ---------------------------------------------
+   input focus 효과 (메인/디테일 공통)
+--------------------------------------------- */
+
+[mainInput, detailInput].forEach((el) => {
+  el.addEventListener("focusin", () => el.classList.add("focused"));
+  el.addEventListener("focusout", () => el.classList.remove("focused"));
 });
 
-input.addEventListener("focusout", () => {
-  input.classList.remove("focused");
-});
-
-//---------------------------------------------
-// 아이콘 d/n 보정
-//---------------------------------------------
+/* ---------------------------------------------
+   아이콘 d/n 보정
+--------------------------------------------- */
 
 function getCorrectIcon(iconCode, dtText) {
   const base = iconCode.slice(0, 2);
@@ -38,36 +64,36 @@ function getCorrectIcon(iconCode, dtText) {
   return `${base}${isDay ? "d" : "n"}`;
 }
 
-//---------------------------------------------
-// 시간대별 배경 변경
-//---------------------------------------------
+/* ---------------------------------------------
+   시간대별 배경 변경 (메인/디테일 모두)
+--------------------------------------------- */
 
 function updateBackgroundByLocalTime() {
   const hour = new Date().getHours();
   const body = document.body;
-  const dayBg = document.querySelector("#dayBg");
-  const nightBg = document.querySelector("#nightBg");
 
-  if (hour >= 6 && hour < 18) {
-    body.classList.add("day");
-    body.classList.remove("night");
-    if (body.classList.contains("day")) {
-      dayBg.classList.add("on");
-    }
-  } else {
-    body.classList.add("night");
-    body.classList.remove("day");
-    if (body.classList.contains("night")) {
-      nightBg.classList.add("on");
-    }
-  }
+  const mainDay = main.querySelector("#dayBg");
+  const mainNight = main.querySelector("#nightBg");
+
+  const detailDay = detail.querySelector("#dayBg");
+  const detailNight = detail.querySelector("#nightBg");
+
+  const isDay = hour >= 6 && hour < 18;
+
+  body.classList.toggle("day", isDay);
+  body.classList.toggle("night", !isDay);
+
+  mainDay.classList.toggle("on", isDay);
+  mainNight.classList.toggle("on", !isDay);
+
+  detailDay.classList.toggle("on", isDay);
+  detailNight.classList.toggle("on", !isDay);
 }
-
 updateBackgroundByLocalTime();
 
-//---------------------------------------------
-// 아이콘 / 설명 맵
-//---------------------------------------------
+/* ---------------------------------------------
+   아이콘 맵 + 한글 설명 맵
+--------------------------------------------- */
 
 const iconMap = {
   "01d": "img/01d.png",
@@ -107,9 +133,9 @@ const descMap = {
   안개: "안개",
 };
 
-//---------------------------------------------
-// 현재 위치 기준 초기 호출
-//---------------------------------------------
+/* ---------------------------------------------
+   현재 위치 기준 초기 호출
+--------------------------------------------- */
 
 getLocation();
 
@@ -123,254 +149,234 @@ async function success(position) {
   fetchWeatherByCoords(lat, lon);
 }
 
-//---------------------------------------------
-// API 호출 (좌표 / 도시명)
-//---------------------------------------------
+/* ---------------------------------------------
+   API 호출 (좌표 / 도시명)
+--------------------------------------------- */
 
 async function fetchWeatherByCoords(lat, lon) {
   let response = await fetch(
     `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${APIkey}&units=metric&lang=kr`
   );
   let data = await response.json();
-  render(data);
+
+  renderMain(data);
+  renderDetail(data);
 }
 
 async function fetchWeatherByCityName(cityname) {
   if (!cityname.trim()) return;
-
   const encodedCity = encodeURIComponent(cityname.trim());
 
-  const geoRes = await fetch(
+  const res = await fetch(
     `https://api.openweathermap.org/geo/1.0/direct?q=${encodedCity}&limit=5&appid=${APIkey}`
   );
-  const geoData = await geoRes.json();
+  const geo = await res.json();
 
-  if (!geoData || geoData.length === 0) {
-    alert("일치하는 도시를 찾을 수 없어요. 다른 이름으로 검색해볼까요?");
+  if (!geo.length) {
+    alert("일치하는 도시를 찾을 수 없어요.");
     return;
   }
 
-  const { lat, lon } = geoData[0];
+  const { lat, lon } = geo[0];
   fetchWeatherByCoords(lat, lon);
 }
 
-//---------------------------------------------
-// 검색 이벤트 (버튼 / 엔터)
-//---------------------------------------------
+/* ---------------------------------------------
+   검색 공통 함수 + 이벤트
+--------------------------------------------- */
 
-button.addEventListener("click", () => {
-  const city = input.value.trim();
-  if (!city) return;
-
-  if (!document.body.classList.contains("searched")) {
-    document.body.classList.add("searched");
-  }
-
+function search(city) {
+  if (!city.trim()) return;
   fetchWeatherByCityName(city);
-  input.value = "";
+  openDetailView();
+}
+
+mainBtn.addEventListener("click", () => search(mainInput.value));
+detailBtn.addEventListener("click", () => search(detailInput.value));
+
+mainInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") search(mainInput.value);
+});
+detailInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") search(detailInput.value);
 });
 
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const city = input.value.trim();
-    if (!city) return;
+/* ---------------------------------------------
+   메인 렌더
+--------------------------------------------- */
 
-    if (!document.body.classList.contains("searched")) {
-      document.body.classList.add("searched");
-    }
-
-    fetchWeatherByCityName(city);
-    input.value = "";
-  }
-});
-
-//---------------------------------------------
-// 렌더링
-//---------------------------------------------
-
-function render(data) {
-  gsap.killTweensOf(liEls);
-
-  liEls.forEach((li, i) => {
-    gsap.fromTo(
-      li,
-      {
-        marginTop: 50,
-        opacity: 0,
-      },
-      {
-        marginTop: 0,
-        opacity: 1,
-        duration: 0.4,
-        delay: i * 0.1,
-        ease: "power2.out",
-      }
-    );
-  });
-
-  place.innerHTML = `<i class="fa-solid fa-location-dot"></i>현재위치 : ${data.city.name}`;
-
-  let temps = [];
-  let labels = [];
+function renderMain(data) {
+  mainPlace.innerHTML = `<i class="fa-solid fa-location-dot"></i>${data.city.name}`;
 
   const now = new Date();
-  let nearestIndex = 0;
+  let nearest = 0;
   let nearestDiff = Infinity;
 
-  for (let i = 0; i < tempEls.length; i++) {
-    let temp = Math.round(data.list[i].main.temp);
-    tempEls[i].textContent = `현재 기온 : ${temp}℃`;
+  data.list.slice(0, 8).forEach((item, i) => {
+    const temp = Math.round(item.main.temp);
+    const rawIcon = item.weather[0].icon;
+    const fixed = getCorrectIcon(rawIcon, item.dt_txt);
 
-    let rawIconCode = data.list[i].weather[0].icon;
-    let dtText = data.list[i].dt_txt;
+    mainTemps[i].textContent = `${temp}℃`;
+    mainIcons[i].src = iconMap[fixed];
+    mainTimes[i].textContent = item.dt_txt.slice(11, 16);
 
-    let fixedIconCode = getCorrectIcon(rawIconCode, dtText);
-    let iconUrl = iconMap[fixedIconCode] || iconMap[rawIconCode];
-    iconEls[i].src = iconUrl;
+    const desc =
+      descMap[item.weather[0].description] || item.weather[0].description;
+    mainDescs[i].textContent = desc;
 
-    let label = data.list[i].dt_txt.slice(11, 16);
-    timeEls[i].textContent = label;
-
-    let rawDesc = data.list[i].weather[0].description;
-    let shortDesc = descMap[rawDesc] || rawDesc;
-    descEls[i].textContent = shortDesc;
-
-    temps.push(temp);
-    labels.push(label);
-
-    const forecastTime = new Date(data.list[i].dt_txt);
-    const diff = Math.abs(forecastTime.getTime() - now.getTime());
-
+    const diff = Math.abs(new Date(item.dt_txt) - now);
     if (diff < nearestDiff) {
       nearestDiff = diff;
-      nearestIndex = i;
+      nearest = i;
     }
-  }
+  });
 
-  liEls.forEach((li) => li.classList.remove("current"));
-  if (liEls[nearestIndex]) {
-    liEls[nearestIndex].classList.add("current");
-  }
+  mainList.forEach((li) => li.classList.remove("current"));
+  mainList[nearest].classList.add("current");
+}
 
-  //---------------------------------------------
-  // 차트 (옵션: 필요 시 drawChart 호출)
-  //---------------------------------------------
+/* ---------------------------------------------
+   디테일 렌더 (상단 detail 박스 + 리스트 + 차트)
+--------------------------------------------- */
 
-  // drawChart(labels, temps);
+function renderDetail(data) {
+  const cityName = data.city.name;
+  const item = data.list[0]; // 가장 가까운 시간대 기준
 
-  function drawChart(labels, temps) {
-    let ctx = document.querySelector("#weatherChart").getContext("2d");
+  // 상단 detail 박스
+  const temp = Math.round(item.main.temp);
+  const tempMin = Math.round(item.main.temp_min);
+  const tempMax = Math.round(item.main.temp_max);
+  const humidity = item.main.humidity;
+  const windSpeed = item.wind.speed;
 
-    if (chart) {
-      chart.destroy();
-    }
+  const rawIcon = item.weather[0].icon;
+  const fixedIcon = getCorrectIcon(rawIcon, item.dt_txt);
 
-    chart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "시간별 기온",
-            data: temps,
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        scales: {
-          y: {
-            min: 10,
-            max: 20,
-            ticks: {
-              stepSize: 2,
-            },
-            title: {
-              display: true,
-              text: "기온",
-              color: "orange",
-              font: {
-                size: 14,
-              },
-            },
-          },
+  detailCity.textContent = cityName;
+  detailIcon.src = iconMap[fixedIcon];
+  detailDesc.textContent =
+    descMap[item.weather[0].description] || item.weather[0].description;
+  detailCurrentTemp.textContent = `${temp}℃`;
+  detailMin.textContent = `${tempMin}℃`;
+  detailMax.textContent = `${tempMax}℃`;
+  detailWind.textContent = `${windSpeed} m/s`;
+  detailHumidity.textContent = `${humidity}%`;
+
+  // 리스트 8개 + 차트용 데이터
+  let labels = [];
+  let temps = [];
+
+  data.list.slice(0, 8).forEach((item, i) => {
+    const t = Math.round(item.main.temp);
+    const raw = item.weather[0].icon;
+    const fixed = getCorrectIcon(raw, item.dt_txt);
+
+    detailTemps[i].textContent = `:${t}℃`;
+    detailIcons[i].src = iconMap[fixed];
+    detailTimes[i].textContent = item.dt_txt.slice(11, 16);
+
+    const desc =
+      descMap[item.weather[0].description] || item.weather[0].description;
+    detailDescs[i].textContent = desc;
+
+    temps.push(t);
+    labels.push(item.dt_txt.slice(11, 16));
+  });
+
+  drawChart(labels, temps);
+}
+
+/* ---------------------------------------------
+   차트
+--------------------------------------------- */
+
+function drawChart(labels, temps) {
+  const ctx = chartCanvas.getContext("2d");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "시간별 기온",
+          data: temps,
+          borderWidth: 2,
         },
-      },
-    });
+      ],
+    },
+    options: {
+      responsive: true,
+    },
+  });
+}
+
+/* ---------------------------------------------
+   디테일 뷰 열기 / 닫기 + back 버튼 이동
+--------------------------------------------- */
+
+function openDetailView() {
+  if (document.body.classList.contains("searched")) return;
+
+  document.body.classList.add("searched");
+
+  // back 버튼을 디테일 섹션 쪽으로 옮겨서 항상 위에 보이게
+  detail.prepend(backBtn);
+
+  gsap.to("#view-detail", {
+    y: "-100vh",
+    duration: 0.6,
+    ease: "power2.out",
+  });
+}
+
+function closeDetailView() {
+  gsap.to("#view-detail", {
+    y: "0",
+    duration: 0.6,
+    ease: "power2.out",
+    onComplete: () => {
+      document.body.classList.remove("searched");
+      // back 버튼을 다시 메인 섹션으로 되돌림
+      main.prepend(backBtn);
+    },
+  });
+}
+
+/* ---------------------------------------------
+   back 버튼 동작
+   - 디테일뷰 열려 있을 때: 메인으로 복귀
+   - 메인뷰일 때: 포트폴리오로 돌아가기(history.back)
+--------------------------------------------- */
+
+backBtn.addEventListener("click", () => {
+  if (document.body.classList.contains("searched")) {
+    // 디테일 뷰 상태 → 닫기
+    closeDetailView();
+  } else {
+    // 메인 상태 → 이전 페이지(포트폴리오)로 돌아가기
+    history.back();
+    // 필요하면 아래처럼 직접 URL 지정도 가능:
+    // location.href = "../index.html";
   }
-}
-
-//---------------------------------------------
-// 카드 hover 인터랙션 (젤리 / 기울기)
-//---------------------------------------------
-
-const cards = document.querySelectorAll("ul li");
-
-function getBaseScale(el) {
-  return el.classList.contains("current") ? 1.2 : 1;
-}
-
-cards.forEach((card) => {
-  card.addEventListener("mouseenter", () => {
-    const base = getBaseScale(card);
-
-    gsap.fromTo(
-      card,
-      { scaleX: base, scaleY: base },
-      {
-        scaleX: base * 1.06,
-        scaleY: base * 0.94,
-        duration: 0.18,
-        yoyo: true,
-        repeat: 1,
-        ease: "power1.out",
-      }
-    );
-  });
-
-  card.addEventListener("mousemove", (e) => {
-    const rect = card.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const relX = (e.clientX - centerX) / (rect.width / 2);
-    const relY = (e.clientY - centerY) / (rect.height / 2);
-
-    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-    const x = clamp(relX, -1, 1);
-    const y = clamp(relY, -1, 1);
-    const base = getBaseScale(card);
-
-    gsap.to(card, {
-      rotation: x * 4,
-      skewX: x * 6,
-      skewY: y * -4,
-      scaleX: base + x * 0.03,
-      scaleY: base - y * 0.03,
-      transformOrigin: "center",
-      duration: 0.25,
-      ease: "power2.out",
-    });
-  });
-
-  card.addEventListener("mouseleave", () => {
-    const base = getBaseScale(card);
-
-    gsap.to(card, {
-      rotation: 0,
-      skewX: 0,
-      skewY: 0,
-      scaleX: base,
-      scaleY: base,
-      duration: 0.6,
-      ease: "elastic.out(1, 0.4)",
-    });
-  });
 });
+// ---------------------------------------------
+// 메인뷰 - "자세히보기" 버튼 클릭 시 디테일뷰 열기
+// ---------------------------------------------
+const currentDetailBtn = document.querySelector("#currentDetailBtn");
 
-//---------------------------------------------
-// 얼굴 아이콘 눈동자: 커서 따라가기
-//---------------------------------------------
+if (currentDetailBtn) {
+  currentDetailBtn.addEventListener("click", () => {
+    openDetailView();
+  });
+}
+/* ---------------------------------------------
+   눈동자 효과 (메인 / 디테일 공용)
+--------------------------------------------- */
 
 const eyeEls = document.querySelectorAll(".bg .eye");
 
@@ -389,18 +395,8 @@ document.addEventListener("mousemove", (e) => {
     const dx = mouseX - centerX;
     const dy = mouseY - centerY;
 
-    if (dx > 0) {
-      gsap.to(pupil, {
-        x: 0,
-        y: 0,
-        duration: 0.15,
-        ease: "power2.out",
-      });
-      return;
-    }
-
-    const maxOffset = rect.width * 0.4;
     const angle = Math.atan2(dy, dx);
+    const maxOffset = rect.width * 0.35;
     const distance = Math.min(Math.hypot(dx, dy), maxOffset);
 
     const offsetX = Math.cos(angle) * distance;
@@ -415,58 +411,57 @@ document.addEventListener("mousemove", (e) => {
   });
 });
 
-//---------------------------------------------
-// 가로 드래그 스크롤 (PC / 모바일)
-//---------------------------------------------
+/* ---------------------------------------------
+   가로 드래그 스크롤 (메인 / 디테일 각각)
+--------------------------------------------- */
 
-const weatherList = document.querySelector("ul");
+function enableDragScroll(ul) {
+  let isDown = false;
+  let startX;
+  let scrollLeft;
 
-let isDown = false;
-let startX;
-let scrollLeft;
-
-if (weatherList) {
-  weatherList.addEventListener("mousedown", (e) => {
+  ul.addEventListener("mousedown", (e) => {
     isDown = true;
-    weatherList.classList.add("dragging");
-    startX = e.pageX - weatherList.offsetLeft;
-    scrollLeft = weatherList.scrollLeft;
+    ul.classList.add("dragging");
+    startX = e.pageX - ul.offsetLeft;
+    scrollLeft = ul.scrollLeft;
   });
 
-  weatherList.addEventListener("mouseleave", () => {
+  ul.addEventListener("mouseleave", () => {
     isDown = false;
-    weatherList.classList.remove("dragging");
+    ul.classList.remove("dragging");
   });
 
-  weatherList.addEventListener("mouseup", () => {
+  ul.addEventListener("mouseup", () => {
     isDown = false;
-    weatherList.classList.remove("dragging");
+    ul.classList.remove("dragging");
   });
 
-  weatherList.addEventListener("mousemove", (e) => {
+  ul.addEventListener("mousemove", (e) => {
     if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - weatherList.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    weatherList.scrollLeft = scrollLeft - walk;
+    const x = e.pageX - ul.offsetLeft;
+    ul.scrollLeft = scrollLeft - (x - startX) * 1.5;
   });
 
-  weatherList.addEventListener("touchstart", (e) => {
+  // 터치 지원
+  ul.addEventListener("touchstart", (e) => {
     isDown = true;
-    weatherList.classList.add("dragging");
-    startX = e.touches[0].pageX - weatherList.offsetLeft;
-    scrollLeft = weatherList.scrollLeft;
+    ul.classList.add("dragging");
+    startX = e.touches[0].pageX - ul.offsetLeft;
+    scrollLeft = ul.scrollLeft;
   });
 
-  weatherList.addEventListener("touchend", () => {
+  ul.addEventListener("touchend", () => {
     isDown = false;
-    weatherList.classList.remove("dragging");
+    ul.classList.remove("dragging");
   });
 
-  weatherList.addEventListener("touchmove", (e) => {
+  ul.addEventListener("touchmove", (e) => {
     if (!isDown) return;
-    const x = e.touches[0].pageX - weatherList.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    weatherList.scrollLeft = scrollLeft - walk;
+    const x = e.touches[0].pageX - ul.offsetLeft;
+    ul.scrollLeft = scrollLeft - (x - startX) * 1.5;
   });
 }
+
+enableDragScroll(main.querySelector("ul"));
+enableDragScroll(detail.querySelector("ul"));

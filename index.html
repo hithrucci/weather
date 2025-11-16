@@ -17,11 +17,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
+    <div id="back">
+      <img src="img/back.svg" alt="back" />
+    </div>
     <section id="view-main">
-      <div id="back">
-        <img src="img/back.svg" alt="back" />
-      </div>
-
       <div id="dayBg" class="bg">
         <div class="face face-day">
           <div class="eye eye-left">
@@ -129,9 +128,147 @@
           <div class="temp"></div>
         </li>
       </ul>
+      <div id="currentDetailBtn">자세히 보기</div>
     </section>
 
-    <canvas id="weatherChart"></canvas>
+    <section id="view-detail">
+      <div id="dayBg" class="bg">
+        <div class="face face-day">
+          <div class="eye eye-left">
+            <div class="pupil"></div>
+          </div>
+          <div class="eye eye-right">
+            <div class="pupil"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="nightBg" class="bg">
+        <div class="face face-night">
+          <div class="eye eye-left">
+            <div class="pupil"></div>
+          </div>
+          <div class="eye eye-right">
+            <div class="pupil"></div>
+          </div>
+        </div>
+      </div>
+      <div id="searchArea">
+        <input
+          type="text"
+          placeholder="검색할 도시이름 입력(ex:서울,도쿄,LA,...)"
+        />
+        <button id="searchBtn" type="button">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+      <div id="detailArea">
+        <div id="detail">
+          <p class="city"></p>
+          <div class="iconWrap">
+            <img class="icon" alt="" />
+            <div class="tempArea">
+              <p class="currentTemp"></p>
+              <p class="desc"></p>
+            </div>
+          </div>
+
+          <div class="temps">
+            <div class="minBox">
+              <span class="boxTitle">최저기온</span>
+              <p class="min"></p>
+            </div>
+
+            <div class="maxBox">
+              <span class="boxTitle">최고기온</span>
+              <p class="max"></p>
+            </div>
+
+            <div class="windBox">
+              <span class="boxTitle">풍속</span>
+              <p class="wind"></p>
+            </div>
+
+            <div class="humBox">
+              <span class="boxTitle">습도</span>
+              <p class="humidity"></p>
+            </div>
+          </div>
+
+          <div class="extra"></div>
+        </div>
+
+        <canvas id="weatherChart"></canvas>
+      </div>
+
+      <ul>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+        <li>
+          <p class="time"></p>
+          <div class="iconWrap">
+            <img alt="" />
+            <p class="desc"></p>
+          </div>
+          <div class="temp"></div>
+        </li>
+      </ul>
+    </section>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="js/weather.js"></script>
