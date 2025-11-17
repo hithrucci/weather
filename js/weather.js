@@ -329,7 +329,7 @@ function renderDetail(data) {
 
   drawChart(labels, temps);
 }
-
+const mq = window.matchMedia("(max-width:719px)");
 /* ---------------------------------------------
    차트
 --------------------------------------------- */
@@ -352,7 +352,7 @@ function drawChart(labels, temps) {
       ],
     },
     options: {
-      responsive: true,
+      responsive: false,
     },
   });
 }
