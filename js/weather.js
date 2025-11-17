@@ -315,7 +315,7 @@ function renderDetail(data) {
     const raw = item.weather[0].icon;
     const fixed = getCorrectIcon(raw, item.dt_txt);
 
-    detailTemps[i].textContent = `:${t}℃`;
+    detailTemps[i].textContent = `${t}℃`;
     detailIcons[i].src = iconMap[fixed];
     detailTimes[i].textContent = item.dt_txt.slice(11, 16);
 
